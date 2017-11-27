@@ -11,11 +11,16 @@ module.exports = function (RED) {
 
     this.serverConfig = RED.nodes.getNode(this.options.server);
 
-    if (this.serverConfig) {
-      this.serverConfig.registerInputNode(this);
-    } else {
-      this.error('Missing server configuration');
+    if (!this.serverConfig) {
+      this.status({ fill: 'red', shape: 'dot', text: 'missing server configuration' });
+      return;
     }
+    if (!this.serverConfig.registerInputNode(this)) {
+      this.status({ fill: 'red', shape: 'dot', text: 'resource already existing' });
+      return;
+    }
+    // clear any error states on the node
+    this.status({});
   }
 
   RED.nodes.registerType('coap in', CoapInNode);

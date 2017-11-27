@@ -35,20 +35,12 @@ module.exports = function (RED) {
     });
   }
 
-  CoapServerNode.prototype.registerInputNode = function (/*Node*/resource) {
-    let exists = false;
-    for (let i = 0; i < this.inputNodes.length; i++) {
-      if (this.inputNodes[i].options.url === resource.options.url &&
-        this.inputNodes[i].options.method === resource.options.method) {
-        exists = true;
-
-        // TODO: Does this have any effect? Should show the error in the frontend somehow? Some kind of status bar?
-        this.error('Node with the specified URL and Method already exists!');
-      }
-    }
-    if (!exists) {
-      this.inputNodes.push(resource);
-    }
+  CoapServerNode.prototype.registerInputNode = function (node) {
+    const duplicates = this.inputNodes.filter(n =>
+      n.options.url === node.options.url && n.options.method === node.options.method);
+    if (duplicates.length > 0) return false;
+    this.inputNodes.push(node);
+    return true;
   };
 
   CoapServerNode.prototype.handleRequest = function (req, res) {
