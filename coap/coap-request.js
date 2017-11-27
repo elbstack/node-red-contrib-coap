@@ -16,6 +16,7 @@ module.exports = function(RED) {
         node.options = {};
         node.options.method = n.method;
         node.options.observe = n.observe;
+	    node.options.observe_on_start = n.observe_on_start||false;
         node.options.name = n.name;
         node.options.url = n.url;
         node.options.contentFormat = n['content-format'];
@@ -53,6 +54,7 @@ module.exports = function(RED) {
                 }
 
                 function _onResponseData(data) {
+					node.status({fill:"green",shape:"dot",text:(reqOpts.observe ? "Observed data ":"Data ")+"received ("+new Date().toLocaleTimeString()+")"});
                     if ( node.options.rawBuffer ) {
                         _send(data);
                     } else if (res.headers['Content-Format'] === 'text/plain') {
@@ -98,7 +100,13 @@ module.exports = function(RED) {
             req.on('error', function(err) {
                 node.log('client error');
                 node.log(err);
+				node.status({fill:"red",shape:"ring",text:"Error:"+err});
             });
+			req.on('timeout', function() {
+				node.status({fill:"red",shape:"ring",text:"Timeout"});
+            });
+			
+			node.status({fill:"yellow",shape:"ring",text:"Pending ("+(reqOpts.observe ? "Observed ":"")+reqOpts.method+" request)"});
 
             if (payload) {
                 req.write(payload);
@@ -109,6 +117,20 @@ module.exports = function(RED) {
         this.on('input', function(msg) {
             _makeRequest(msg);
         });
+		
+		this.on('close', function(done) {
+			if (node.stream) {
+				node.stream.close();
+            }
+			done();
+        });
+		
+		node.status({});
+		
+		if(node.options.observe && node.options.observe_on_start){
+			var dummyPayload={payload:""};
+			_makeRequest(dummyPayload);
+		}
     }
     RED.nodes.registerType("coap request", CoapRequestNode);
 };
