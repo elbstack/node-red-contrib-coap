@@ -15,23 +15,18 @@
     "eslint": "^4.12.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-plugin-import": "^2.8.0",
-    "express": "^4.13.4",
+    "express": "^4.16.2",
     "grunt": "^1.0.1",
     "grunt-cli": "^1.2.0",
-    "grunt-contrib-jshint": "^1.0.0",
-    "grunt-simple-mocha": "^0.4.0",
-    "mocha": "^2.0.1",
+    "grunt-simple-mocha": "^0.4.1",
+    "mocha": "^4.0.1",
     "node-red": "^0.17.5",
-    "should": "^9.0.0",
-    "sinon": "^1.12.2",
+    "should": "^13.1.3",
+    "sinon": "^4.1.2",
     "supertest": "^3.0.0",
-    "when": "^3.6.4"
+    "when": "^3.7.8"
   },
   "license": "MIT",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/reederz/node-red-contrib-coap.git"
-  },
   "keywords": [
     "node-red",
     "node-red-contrib",
@@ -61,6 +56,9 @@
     },
     {
       "name": "Justas Azna"
+    },
+    {
+      "name": "Jan Christoph Bernack"
     }
   ]
 }
