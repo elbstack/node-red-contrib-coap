@@ -41,6 +41,7 @@
   ],
   "node-red": {
     "nodes": {
+      "coap-server": "coap/coap-server.js",
       "coap-in": "coap/coap-in.js",
       "coap-request": "coap/coap-request.js"
     }
