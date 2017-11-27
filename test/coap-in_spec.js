@@ -3,6 +3,7 @@ const coap = require('coap');
 const url = require('url');
 const coapServerNode = require('../coap/coap-server.js');
 const coapInNode = require('../coap/coap-in.js');
+const coapOutNode = require('../coap/coap-out.js');
 const functionNode = require('node-red/nodes/core/core/80-function.js');
 const helper = require('./helper.js');
 
@@ -58,7 +59,7 @@ describe('CoapInNode', () => {
     ];
 
     // Need to register nodes in order to use them
-    const testNodes = [functionNode, coapServerNode];
+    const testNodes = [coapServerNode];
     helper.load(testNodes, flow, () => {
       const urlStr = 'coap://localhost:8888/unregistered';
       const opts = url.parse(urlStr);
@@ -99,19 +100,25 @@ describe('CoapInNode', () => {
               name: 'coapIn',
               url: '/test',
               server: 'coapServer',
+              wires: [['setMessagePayload']],
+            },
+            {
+              id: 'setMessagePayload',
+              type: 'function',
+              name: 'setMessagePayload',
+              func: `msg.payload = '${test.message}';\nreturn msg;`,
               wires: [['coapOut']],
             },
             {
               id: 'coapOut',
-              type: 'function',
-              name: 'coapOutGet',
-              func: 'msg.res.end(\'' + test.message + '\');\nreturn msg;',
+              type: 'coap out',
+              name: 'coapOut',
               wires: [],
             },
           ];
 
           // Need to register nodes in order to use them
-          const testNodes = [functionNode, coapServerNode, coapInNode];
+          const testNodes = [coapServerNode, coapInNode, functionNode, coapOutNode];
           helper.load(testNodes, flow, () => {
             const urlStr = 'coap://localhost:8888/test';
             const opts = url.parse(urlStr);
@@ -149,7 +156,7 @@ describe('CoapInNode', () => {
       ];
 
       // Need to register nodes in order to use them
-      const testNodes = [functionNode, coapServerNode, coapInNode];
+      const testNodes = [coapServerNode, coapInNode, coapOutNode];
       helper.load(testNodes, flow, () => {
         const urlStr = 'coap://localhost:8888/test';
         const opts = url.parse(urlStr);
