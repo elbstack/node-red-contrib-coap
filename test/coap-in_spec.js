@@ -1,169 +1,168 @@
-var should = require("should");
+const should = require('should');
+const coap = require('coap');
+const url = require('url');
+const coapServerNode = require('../coap/coap-server.js');
+const coapInNode = require('../coap/coap-in.js');
+const functionNode = require('node-red/nodes/core/core/80-function.js');
+const helper = require('./helper.js');
 
-var coap = require("coap");
-var url = require("url");
-var coapInNode = require("../coap/coap-in.js");
-var functionNode = require("node-red/nodes/core/core/80-function.js");
-var helper = require("./helper.js");
+describe('CoapInNode', () => {
+  beforeEach(done => {
+    helper.startServer(done);
+  });
 
-describe('CoapInNode', function() {
-    beforeEach(function(done) {
-        helper.startServer(done);
+  afterEach(done => {
+    helper.unload().then(() => {
+      helper.stopServer(done);
     });
+  });
 
-    afterEach(function(done) {
-        helper.unload().then(function() {
-            helper.stopServer(done);
+  it('should be loaded', done => {
+    const flow = [
+      {
+        id: 'coapServer1',
+        type: 'coap-server',
+        name: 'coapServer',
+        port: 5683,
+      },
+      {
+        id: 'coapIn1',
+        type: 'coap in',
+        method: 'GET',
+        name: 'coapIn',
+        url: '/test',
+        server: 'coapServer1',
+      },
+    ];
+
+    //need to register nodes in order to use them
+    const testNodes = [coapServerNode, coapInNode];
+    helper.load(testNodes, flow, () => {
+      const coapIn1 = helper.getNode('coapIn1');
+      coapIn1.options.should.have.property('method', 'GET');
+      coapIn1.options.should.have.property('name', 'coapIn');
+      coapIn1.options.should.have.property('url', '/test');
+      coapIn1.options.should.have.property('server');
+      done();
+    });
+  });
+
+  it('should return 4.04 for unregistered paths', done => {
+    const flow = [
+      {
+        id: 'coapServer',
+        type: 'coap-server',
+        name: 'coapServer',
+        port: 8888,
+      },
+    ];
+
+    // Need to register nodes in order to use them
+    const testNodes = [functionNode, coapServerNode];
+    helper.load(testNodes, flow, () => {
+      const urlStr = 'coap://localhost:8888/unregistered';
+      const opts = url.parse(urlStr);
+      opts.method = 'GET';
+      const req = coap.request(opts);
+
+      req.on('response', res => {
+        helper.endTest(done, () => {
+          res.code.should.equal('4.04');
         });
+      });
+      req.end();
     });
+  });
 
-    it('should be loaded', function(done) {
-        var flow = [
-                    {
-                        id:"coapServer1",
-                        type:"coap-server",
-                        name:"coapServer",
-                        port:5683
-                    },
-                    {
-                        id:"coapIn1",
-                        type:"coap in",
-                        method:"GET",
-                        name:"coapIn",
-                        url:"/test",
-                        server:"coapServer1"
-                    }
-                   ];
+  describe('Methods', () => {
+    const methodTests = [
+      { method: 'GET', message: 'You get me, buddy' },
+      { method: 'PUT', message: 'This resource sucks–need to change it' },
+      { method: 'POST', message: 'Welcome aboard!' },
+      { method: 'DELETE', message: 'Erase and rewind…' },
+    ];
 
-        //need to register nodes in order to use them
-        var testNodes = [coapInNode];
-        helper.load(testNodes, flow, function() {
-            var coapIn1 = helper.getNode("coapIn1");
-            coapIn1.options.should.have.property('method', 'GET');
-            coapIn1.options.should.have.property('name', 'coapIn');
-            coapIn1.options.should.have.property('url', '/test');
-            coapIn1.options.should.have.property('server');
-            done();
-        });
-    });
+    for (let i = 0; i < methodTests.length; i++) {
+      (function (test) {
+        it('should accept ' + test.method + ' requests', done => {
+          const flow = [
+            {
+              id: 'coapServer',
+              type: 'coap-server',
+              name: 'coapServer',
+              port: 8888,
+            },
+            {
+              id: 'coapIn',
+              type: 'coap in',
+              method: test.method,
+              name: 'coapIn',
+              url: '/test',
+              server: 'coapServer',
+              wires: [['coapOut']],
+            },
+            {
+              id: 'coapOut',
+              type: 'function',
+              name: 'coapOutGet',
+              func: 'msg.res.end(\'' + test.message + '\');\nreturn msg;',
+              wires: [],
+            },
+          ];
 
-    it('should return 4.04 for unregistered paths', function(done) {
-        var flow = [
-                    {
-                        id:"coapServer",
-                        type:"coap-server",
-                        name:"coapServer",
-                        port:8888
-                    }
-                   ];
+          // Need to register nodes in order to use them
+          const testNodes = [functionNode, coapServerNode, coapInNode];
+          helper.load(testNodes, flow, () => {
+            const urlStr = 'coap://localhost:8888/test';
+            const opts = url.parse(urlStr);
+            opts.method = test.method;
+            const req = coap.request(opts);
 
-        // Need to register nodes in order to use them
-        var testNodes = [functionNode, coapInNode];
-        helper.load(testNodes, flow, function() {
-            var urlStr = "coap://localhost:8888/unregistered";
-            var opts = url.parse(urlStr);
-            opts.method = 'GET';
-            var req = coap.request(opts);
-
-            req.on('response', function(res) {
-                helper.endTest(done,function(){
-                    res.code.should.equal('4.04');
-                });
+            req.on('response', res => {
+              helper.endTest(done, () => {
+                res.payload.toString().should.equal(test.message);
+              });
             });
             req.end();
+          });
         });
-    });
+      }(methodTests[i]));
+    }
 
-    describe('Methods', function() {
+    it('should return 4.05 for unregistered methods', done => {
+      const flow = [
+        {
+          id: 'coapServer',
+          type: 'coap-server',
+          name: 'coapServer',
+          port: 8888,
+        },
+        {
+          id: 'coapIn',
+          type: 'coap in',
+          method: 'GET',
+          name: 'coapIn',
+          url: '/test',
+          server: 'coapServer',
+          wires: [['coapOut']],
+        },
+      ];
 
-        var methodTests = [
-            { method: 'GET',    message: 'You get me, buddy' },
-            { method: 'PUT',    message: 'This resource sucks–need to change it' },
-            { method: 'POST',   message: 'Welcome aboard!' },
-            { method: 'DELETE', message: 'Erase and rewind…' }
-        ];
+      // Need to register nodes in order to use them
+      const testNodes = [functionNode, coapServerNode, coapInNode];
+      helper.load(testNodes, flow, () => {
+        const urlStr = 'coap://localhost:8888/test';
+        const opts = url.parse(urlStr);
+        opts.method = 'PUT';
+        const req = coap.request(opts);
 
-        for ( i = 0; i < methodTests.length; ++i ) {
-            ( function ( test ) {
-                it('should accept ' + test.method + ' requests', function(done) {
-                    var flow = [
-                                {
-                                    id:"coapServer",
-                                    type:"coap-server",
-                                    name:"coapServer",
-                                    port:8888
-                                },
-                                {
-                                    id:"coapIn",
-                                    type:"coap in",
-                                    method:test.method,
-                                    name:"coapIn",
-                                    url:"/test",
-                                    server:"coapServer",
-                                    wires:[["coapOut"]]
-                                },
-                                {
-                                    id:'coapOut',
-                                    type:"function",
-                                    name:"coapOutGet",
-                                    func:"msg.res.end('"+ test.message +"');\nreturn msg;",
-                                    wires:[]
-                                }
-                               ];
-
-                    // Need to register nodes in order to use them
-                    var testNodes = [functionNode, coapInNode];
-                    helper.load(testNodes, flow, function() {
-                        var urlStr = "coap://localhost:8888/test";
-                        var opts = url.parse(urlStr);
-                        opts.method = test.method;
-                        var req = coap.request(opts);
-
-                        req.on('response', function(res) {
-                            helper.endTest(done,function(){
-                                res.payload.toString().should.equal(test.message);
-                            });
-                        });
-                        req.end();
-                    });
-                });
-            } ) ( methodTests[i] );
-        }
-
-        it('should return 4.05 for unregistered methods', function(done) {
-            var flow = [
-                        {
-                            id:"coapServer",
-                            type:"coap-server",
-                            name:"coapServer",
-                            port:8888
-                        },
-                        {
-                            id:"coapIn",
-                            type:"coap in",
-                            method: 'GET',
-                            name:"coapIn",
-                            url:"/test",
-                            server:"coapServer",
-                            wires:[["coapOut"]]
-                        }
-                       ];
-
-            // Need to register nodes in order to use them
-            var testNodes = [functionNode, coapInNode];
-            helper.load(testNodes, flow, function() {
-                var urlStr = "coap://localhost:8888/test";
-                var opts = url.parse(urlStr);
-                opts.method = 'PUT';
-                var req = coap.request(opts);
-
-                req.on('response', function(res) {
-                    helper.endTest(done,function(){
-                        res.code.should.equal('4.05');
-                    });
-                });
-                req.end();
-            });
+        req.on('response', res => {
+          helper.endTest(done, () => {
+            res.code.should.equal('4.05');
+          });
         });
+        req.end();
+      });
     });
+  });
 });

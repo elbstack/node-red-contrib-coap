@@ -1,4 +1,7 @@
 extends: airbnb-base
+env:
+  node: true
+  mocha: true
 rules:
   max-len:
     - 2
