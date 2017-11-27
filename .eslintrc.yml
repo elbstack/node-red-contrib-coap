@@ -1,0 +1,24 @@
+extends: airbnb-base
+rules:
+  max-len:
+    - 2
+    - code: 120
+  no-param-reassign:
+    - 0
+  no-bitwise:
+    - 0
+  comma-dangle:
+    - 2
+    - arrays: always-multiline
+      objects: always-multiline
+  func-names:
+    - 0
+  arrow-parens:
+    - 2
+    - as-needed
+  spaced-comment:
+    - 0
+  prefer-template:
+    - 0
+  no-plusplus:
+    - 0
