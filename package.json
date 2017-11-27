@@ -43,6 +43,7 @@
     "nodes": {
       "coap-server": "coap/coap-server.js",
       "coap-in": "coap/coap-in.js",
+      "coap-out": "coap/coap-out.js",
       "coap-request": "coap/coap-request.js"
     }
   },

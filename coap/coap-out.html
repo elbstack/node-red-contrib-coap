@@ -1,0 +1,44 @@
+<script type="text/javascript">
+  RED.nodes.registerType('coap out', {
+    category: 'output',
+    color: '#a6bbcf',
+    defaults: {
+      name: { value: '' },
+      statusCode: { value: '' },
+    },
+    inputs: 1,
+    outputs: 0,
+    icon: 'white-globe.png',
+    align: 'right',
+    label: function () {
+      return this.name || 'coap response';
+    },
+    labelStyle: function () {
+      return this.name ? 'node_label_italic' : '';
+    },
+  });
+</script>
+
+<script type="text/x-red" data-template-name="coap out">
+  <div class="form-row">
+    <label for="node-input-statusCode"><i class="fa fa-long-arrow-left"></i> Status code</label>
+    <input type="text" id="node-input-statusCode" placeholder="2.05"/>
+  </div>
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="coap response"/>
+  </div>
+</script>
+
+<script type="text/x-red" data-help-name="coap out">
+  <p>Provides a node to send CoAP responses.</p>
+
+  <p>Messages processed by this node have to originate from a coap-in node.
+
+  <p>The following properties may be set on the message object:</p>
+
+  <ul>
+    <li><code>payload</code> will be sent in the body of the response.</li>
+    <li><code>statusCode</code> will be sent in the body of the response.</li>
+  </ul>
+</script>
