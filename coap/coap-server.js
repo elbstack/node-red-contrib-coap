@@ -3,41 +3,34 @@ const coap = require('coap');
 module.exports = function (RED) {
   // A node red node that sets up a local coap server
   function CoapServerNode(n) {
-    // Create a RED node
     RED.nodes.createNode(this, n);
-    const node = this;
-
-    // Store local copies of the node configuration (as defined in the .html)
-    node.options = {};
-    node.options.name = n.name;
-    node.options.port = n.port;
+    this.port = n.port;
 
     // collection of 'coap in' nodes that represent coap resources
-    node.inputNodes = [];
+    this.inputNodes = [];
 
-    // Setup node-coap server and start
-    node.server = coap.createServer();
-    node.server.on('request', (req, res) => {
-      node.handleRequest(req, res);
+    // setup node-coap server and start
+    // TODO: make server options configurable
+    this.server = coap.createServer();
+    this.server.on('request', (req, res) => {
+      this.handleRequest(req, res);
       res.on('error', err => {
-        node.log('server error');
-        node.log(err);
+        this.log('server error');
+        this.log(err);
       });
     });
-    node.server.listen(node.options.port, () => {
-      // console.log('server started');
-      node.log('CoAP Server Started');
+    this.server.listen(this.port, () => {
+      this.log('CoAP Server listening on ' + this.port);
     });
 
-    node.on('close', () => {
-      node.inputNodes = [];
-      node.server.close();
+    this.on('close', () => {
+      this.inputNodes = [];
+      this.server.close();
     });
   }
 
   CoapServerNode.prototype.registerInputNode = function (node) {
-    const duplicates = this.inputNodes.filter(n =>
-      n.options.url === node.options.url && n.options.method === node.options.method);
+    const duplicates = this.inputNodes.filter(n => n.url === node.url && n.method === node.method);
     if (duplicates.length > 0) return false;
     this.inputNodes.push(node);
     return true;
@@ -45,28 +38,23 @@ module.exports = function (RED) {
 
   CoapServerNode.prototype.handleRequest = function (req, res) {
     // TODO: If the resource is .well-known return the resource directory to the client
-    // Check if there are any matching resource.
-    let matchResource = false;
-    let matchMethod = false;
-    for (let i = 0; i < this.inputNodes.length; i++) {
-      if (this.inputNodes[i].options.url === req.url) {
-        matchResource = true;
-        if (this.inputNodes[i].options.method === req.method) {
-          matchMethod = true;
-          const inNode = this.inputNodes[i];
-          inNode.send({ req, res });
-        }
-      }
-    }
-    if (!matchResource) {
+    // find any nodes matching the url
+    const resourceNodes = this.inputNodes.filter(n => n.url === req.url);
+    if (!resourceNodes.length) {
       res.code = '4.04';
       res.end();
+      return;
     }
-
-    if (!matchMethod) {
+    // find nodes matching the method
+    const matchedNodes = resourceNodes.filter(n => n.method === req.method);
+    if (!matchedNodes.length) {
       res.code = '4.05';
       res.end();
+      return;
     }
+    // send request and response object to input node
+    const node = matchedNodes[0];
+    node.receive({ req, res });
   };
 
   RED.nodes.registerType('coap-server', CoapServerNode);
