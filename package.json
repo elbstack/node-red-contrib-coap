@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "cbor": "^3.0.3",
-    "coap": "^0.21.0",
+    "coap": "^0.22.0",
     "h5.linkformat": "0.0.0",
     "uri-js": "^3.0.2"
   },

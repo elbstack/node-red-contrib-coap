@@ -12,7 +12,10 @@ module.exports = function (RED) {
 
     // setup node-coap server and start
     // TODO: make server options configurable
-    this.server = coap.createServer();
+    this.server = coap.createServer({
+      piggybackReplyMs: 1000,
+      sendAcksForNonConfirmablePackets: false,
+    });
     this.server.on('request', (req, res) => {
       res.on('error', err => {
         this.log('server error');
