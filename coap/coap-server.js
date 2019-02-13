@@ -14,7 +14,6 @@ module.exports = function (RED) {
     // TODO: make server options configurable
     this.server = coap.createServer({
       piggybackReplyMs: 1000,
-      sendAcksForNonConfirmablePackets: false,
     });
     this.server.on('request', (req, res) => {
       res.on('error', err => {
